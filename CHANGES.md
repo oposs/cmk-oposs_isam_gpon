@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### New
 
+### Changed
+
+### Fixed
+
+## 0.1.0 - 2026-03-04
+### New
 - Initial migration from oegig-plugins to Checkmk 2.3.x v2 API
 - Linecard check: monitors slot availability and status
 - GPON check: monitors port status, SFP optics, and traffic statistics
@@ -16,6 +22,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Metric names prefixed with `oposs_isam_` for namespace isolation
 - MKP packaging via oposs/mkp-builder GitHub Action
 
-### Changed
 
-### Fixed
