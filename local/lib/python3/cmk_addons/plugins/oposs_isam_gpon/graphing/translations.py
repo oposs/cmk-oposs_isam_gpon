@@ -7,13 +7,23 @@ The v1 check was registered as ``nokia_isam_gpon`` and emitted metrics
 prefixed with ``isam_``.  The v2 plugin is ``oposs_isam_gpon`` and uses
 the ``oposs_isam_`` prefix.  This translation lets Checkmk carry over
 existing RRD data so historical graphs remain intact.
+
+IMPORTANT: ``check_commands`` MUST reference the *new* check name
+(``oposs_isam_gpon``), not the legacy ``nokia_isam_gpon``. Checkmk's
+translation lookup
+(``cmk/gui/graphing/_translated_metrics.py``,
+``lookup_metric_translations_for_check_command``) is an exact dict-key
+match on the live service's current check command. After the legacy
+plugin is uninstalled no service has the legacy command attached, so an
+entry keyed on it would never fire and the legacy ``isam_*.rrd`` files
+in the per-service directory would stay orphaned.
 """
 
 from cmk.graphing.v1 import translations
 
-translation_nokia_isam_gpon = translations.Translation(
-    name="nokia_isam_gpon",
-    check_commands=[translations.PassiveCheck("nokia_isam_gpon")],
+translation_oposs_isam_gpon = translations.Translation(
+    name="oposs_isam_gpon",
+    check_commands=[translations.PassiveCheck("oposs_isam_gpon")],
     translations={
         "isam_bias_current": translations.RenameTo("oposs_isam_bias_current"),
         "isam_txpower": translations.RenameTo("oposs_isam_txpower"),
