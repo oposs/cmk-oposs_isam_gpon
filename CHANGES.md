@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 ### Fixed
+
+## 0.1.1 - 2026-04-27
+### Fixed
 - Metric translation for the legacy `nokia_isam_gpon` history is now keyed
   on the new `oposs_isam_gpon` check command so it actually fires.
   Previously it was keyed on the now-uninstalled legacy command and
