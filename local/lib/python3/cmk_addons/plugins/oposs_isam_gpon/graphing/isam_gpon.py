@@ -22,7 +22,7 @@ unit_dbm = Unit(DecimalNotation("dBm"))
 unit_volts = Unit(DecimalNotation("V"))
 unit_celsius = Unit(DecimalNotation("\u00b0C"))
 unit_percent = Unit(DecimalNotation("%"))
-unit_bytes = Unit(IECNotation("B"))
+unit_bytes_per_sec = Unit(IECNotation("B/s"))
 unit_count = Unit(DecimalNotation(""))
 
 # ---------------------------------------------------------------------------
@@ -65,76 +65,77 @@ metric_oposs_isam_temperature = Metric(
 )
 
 # ---------------------------------------------------------------------------
-# Traffic byte metrics
+# Traffic byte-rate metrics (bytes per second, derived from PM interval
+# counters that reset every 15 min — see oposs_isam_gpon.py)
 # ---------------------------------------------------------------------------
 
-metric_oposs_isam_TxUcastBytes = Metric(
-    name="oposs_isam_TxUcastBytes",
+metric_oposs_isam_TxUcastBytesRate = Metric(
+    name="oposs_isam_TxUcastBytesRate",
     title=Title("Tx Unicast"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.BLUE,
 )
 
-metric_oposs_isam_TxMcastBytes = Metric(
-    name="oposs_isam_TxMcastBytes",
+metric_oposs_isam_TxMcastBytesRate = Metric(
+    name="oposs_isam_TxMcastBytesRate",
     title=Title("Tx Multicast"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.GREEN,
 )
 
-metric_oposs_isam_TxBcastBytes = Metric(
-    name="oposs_isam_TxBcastBytes",
+metric_oposs_isam_TxBcastBytesRate = Metric(
+    name="oposs_isam_TxBcastBytesRate",
     title=Title("Tx Broadcast"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.ORANGE,
 )
 
-metric_oposs_isam_TxTotalBytes = Metric(
-    name="oposs_isam_TxTotalBytes",
+metric_oposs_isam_TxTotalBytesRate = Metric(
+    name="oposs_isam_TxTotalBytesRate",
     title=Title("Tx Total"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.DARK_BLUE,
 )
 
-metric_oposs_isam_RxTotalBytes = Metric(
-    name="oposs_isam_RxTotalBytes",
+metric_oposs_isam_RxTotalBytesRate = Metric(
+    name="oposs_isam_RxTotalBytesRate",
     title=Title("Rx Total"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.DARK_GREEN,
 )
 
-metric_oposs_isam_TxUcastDropBytes = Metric(
-    name="oposs_isam_TxUcastDropBytes",
+metric_oposs_isam_TxUcastDropBytesRate = Metric(
+    name="oposs_isam_TxUcastDropBytesRate",
     title=Title("Tx Unicast Drop"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.DARK_RED,
 )
 
-metric_oposs_isam_RxTotalDropBytes = Metric(
-    name="oposs_isam_RxTotalDropBytes",
+metric_oposs_isam_RxTotalDropBytesRate = Metric(
+    name="oposs_isam_RxTotalDropBytesRate",
     title=Title("Rx Total Drop"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.DARK_ORANGE,
 )
 
-metric_oposs_isam_TxMcastDropBytes = Metric(
-    name="oposs_isam_TxMcastDropBytes",
+metric_oposs_isam_TxMcastDropBytesRate = Metric(
+    name="oposs_isam_TxMcastDropBytesRate",
     title=Title("Tx Multicast Drop"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.DARK_YELLOW,
 )
 
-metric_oposs_isam_TxBcastDropBytes = Metric(
-    name="oposs_isam_TxBcastDropBytes",
+metric_oposs_isam_TxBcastDropBytesRate = Metric(
+    name="oposs_isam_TxBcastDropBytesRate",
     title=Title("Tx Broadcast Drop"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.DARK_PINK,
 )
 
-metric_oposs_isam_TxTotalDropBytes = Metric(
-    name="oposs_isam_TxTotalDropBytes",
+metric_oposs_isam_TxTotalDropBytesRate = Metric(
+    name="oposs_isam_TxTotalDropBytesRate",
     title=Title("Tx Total Drop"),
-    unit=unit_bytes,
+    unit=unit_bytes_per_sec,
     color=Color.DARK_CYAN,
 )
 
@@ -212,8 +213,8 @@ graph_oposs_isam_traffic = Graph(
     name="oposs_isam_traffic",
     title=Title("ISAM GPON Traffic"),
     simple_lines=[
-        "oposs_isam_TxTotalBytes",
-        "oposs_isam_RxTotalBytes",
+        "oposs_isam_TxTotalBytesRate",
+        "oposs_isam_RxTotalBytesRate",
     ],
 )
 
@@ -221,8 +222,8 @@ graph_oposs_isam_traffic_drops = Graph(
     name="oposs_isam_traffic_drops",
     title=Title("ISAM GPON Traffic Drops"),
     simple_lines=[
-        "oposs_isam_TxTotalDropBytes",
-        "oposs_isam_RxTotalDropBytes",
+        "oposs_isam_TxTotalDropBytesRate",
+        "oposs_isam_RxTotalDropBytesRate",
     ],
 )
 

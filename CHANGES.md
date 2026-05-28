@@ -10,8 +10,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### New
 
 ### Changed
+- Traffic byte metrics are now emitted as **bytes per second** rates
+  instead of raw counters, and renamed with a `Rate` suffix
+  (`oposs_isam_Tx*BytesRate`, `oposs_isam_Rx*BytesRate`,
+  `oposs_isam_*DropBytesRate`). Graphing unit changed from `B` to `B/s`.
+- Utilization metrics (`oposs_isam_*Util`) are now computed by the check
+  from the byte rate divided by the GPON line rate (2.488 Gbps
+  downstream / 1.244 Gbps upstream per ITU-T G.984). The corresponding
+  SNMP OIDs (`gponOltSidePonUtil…Util` columns 2/4/5/6/7) are no longer
+  fetched, reducing per-check SNMP traffic.
 
 ### Fixed
+- GPON traffic byte values now reflect real throughput. They were
+  sourced from `gponOltSidePonUtilPmCurrentIntervalTable`, a Nokia ISAM
+  Performance Monitoring table whose counters reset at the start of
+  every 15-minute PM window. Emitting them as plain gauges produced the
+  characteristic saw-tooth pattern in the graphs (climb to ~400 MB,
+  snap back to 0, repeat) that did not represent actual link traffic.
+  The check now keeps the previous `(timestamp, value)` per metric in
+  the value store, emits `(now - prev) / Δt` as the per-second rate,
+  and drops the one sample per interval that shows a negative delta
+  (the rollover). The same fix removes the equivalent distortion from
+  the device-reported `*Util` percentages, which are now derived from
+  the new rates.
+
+### Removed
+- Translation entries for the legacy `isam_*Bytes` and `isam_*Util`
+  metrics. The underlying RRD data was the saw-tooth noise described
+  above, so carrying it over would just smear historical garbage into
+  the new graphs. The new `…BytesRate` and recomputed `…Util` series
+  start fresh; the orphan `isam_*.rrd` files are harmless and can be
+  removed manually if desired.
 
 ## 0.1.1 - 2026-04-27
 ### Fixed

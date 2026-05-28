@@ -17,6 +17,13 @@ match on the live service's current check command. After the legacy
 plugin is uninstalled no service has the legacy command attached, so an
 entry keyed on it would never fire and the legacy ``isam_*.rrd`` files
 in the per-service directory would stay orphaned.
+
+Not migrated: the legacy ``isam_*Bytes`` and ``isam_*Util`` metrics.
+Both were sourced from PM current-interval counters that reset every
+15 minutes but were stored as gauges, so the historical values are
+saw-tooth noise rather than real traffic. Their RRD files are left
+orphaned intentionally; the new ``…BytesRate`` (B/s) and recomputed
+``…Util`` (%) series start fresh.
 """
 
 from cmk.graphing.v1 import translations
@@ -30,21 +37,6 @@ translation_oposs_isam_gpon = translations.Translation(
         "isam_rxpower": translations.RenameTo("oposs_isam_rxpower"),
         "isam_voltage": translations.RenameTo("oposs_isam_voltage"),
         "isam_temperature": translations.RenameTo("oposs_isam_temperature"),
-        "isam_TxUcastBytes": translations.RenameTo("oposs_isam_TxUcastBytes"),
-        "isam_TxMcastBytes": translations.RenameTo("oposs_isam_TxMcastBytes"),
-        "isam_TxBcastBytes": translations.RenameTo("oposs_isam_TxBcastBytes"),
-        "isam_TxTotalBytes": translations.RenameTo("oposs_isam_TxTotalBytes"),
-        "isam_RxTotalBytes": translations.RenameTo("oposs_isam_RxTotalBytes"),
-        "isam_TxUcastDropBytes": translations.RenameTo("oposs_isam_TxUcastDropBytes"),
-        "isam_RxTotalDropBytes": translations.RenameTo("oposs_isam_RxTotalDropBytes"),
-        "isam_TxMcastDropBytes": translations.RenameTo("oposs_isam_TxMcastDropBytes"),
-        "isam_TxBcastDropBytes": translations.RenameTo("oposs_isam_TxBcastDropBytes"),
-        "isam_TxTotalDropBytes": translations.RenameTo("oposs_isam_TxTotalDropBytes"),
-        "isam_TxUcastUtil": translations.RenameTo("oposs_isam_TxUcastUtil"),
-        "isam_TxMcastUtil": translations.RenameTo("oposs_isam_TxMcastUtil"),
-        "isam_TxBcastUtil": translations.RenameTo("oposs_isam_TxBcastUtil"),
-        "isam_TxTotalUtil": translations.RenameTo("oposs_isam_TxTotalUtil"),
-        "isam_RxTotalUtil": translations.RenameTo("oposs_isam_RxTotalUtil"),
         "isam_NumActiveOnts": translations.RenameTo("oposs_isam_NumActiveOnts"),
         "isam_RxDBACongestionTime": translations.RenameTo("oposs_isam_RxDBACongestionTime"),
     },
