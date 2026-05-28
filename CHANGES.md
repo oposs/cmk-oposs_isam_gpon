@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### New
 
 ### Changed
+
+### Fixed
+
+## 0.2.0 - 2026-05-28
+### Changed
 - Traffic byte metrics are now emitted as **bytes per second** rates
   instead of raw counters, and renamed with a `Rate` suffix
   (`oposs_isam_Tx*BytesRate`, `oposs_isam_Rx*BytesRate`,
@@ -33,14 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   (the rollover). The same fix removes the equivalent distortion from
   the device-reported `*Util` percentages, which are now derived from
   the new rates.
-
-### Removed
-- Translation entries for the legacy `isam_*Bytes` and `isam_*Util`
-  metrics. The underlying RRD data was the saw-tooth noise described
-  above, so carrying it over would just smear historical garbage into
-  the new graphs. The new `…BytesRate` and recomputed `…Util` series
-  start fresh; the orphan `isam_*.rrd` files are harmless and can be
-  removed manually if desired.
 
 ## 0.1.1 - 2026-04-27
 ### Fixed
