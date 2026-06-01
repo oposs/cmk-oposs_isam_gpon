@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 ### Fixed
+- GPON traffic graphs no longer show periodic gaps under 5-minute
+  polling. The byte-rate conversion in 0.2.0 dropped any poll whose
+  delta went negative, which is exactly the poll that straddles a
+  15-minute PM counter reset (`:00/:15/:30/:45`) — so roughly one in
+  three samples produced no metric and left a hole in the graph. The
+  reset sample is now kept: its post-reset bytes are divided by the
+  time since the boundary (`now % 900`), which yields the correct rate
+  with no gap and no dip. Only the byte integral over the reset
+  interval is marginally undercounted.
 
 ## 0.2.0 - 2026-05-28
 ### Changed

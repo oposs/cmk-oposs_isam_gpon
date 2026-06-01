@@ -240,21 +240,36 @@ def _parse_bitmap_block(result, rows, fields, conv_type):
 def _interval_rate(value_store, key, now, value):
     """Compute a per-second rate from a PM counter that resets every interval.
 
-    Returns None on the first sample and on detected rollover (negative
-    delta), so the value store always carries the most recent reading.
+    The raw counters come from a 15-minute PM current-interval table that
+    resets to zero at every :00/:15/:30/:45 boundary. Within a window we
+    difference consecutive polls. The poll that straddles a reset produces
+    a negative delta; rather than dropping it (which left a gap in the graph
+    on roughly one in three samples under 5-minute polling), we count the
+    bytes accumulated in the new window and divide by the time elapsed since
+    the 15-minute boundary. For a steady rate that yields the same rate with
+    no gap and no dip; only the byte integral over the reset interval is
+    marginally undercounted (the tail between the last poll and the boundary
+    is not emitted as its own point).
+
+    Returns None only on the first sample, so the value store always carries
+    the most recent reading.
     """
     prev = value_store.get(key)
     value_store[key] = (now, value)
     if prev is None:
         return None
     prev_t, prev_v = prev
-    dt = now - prev_t
-    if dt <= 0:
-        return None
     dv = value - prev_v
-    if dv < 0:
-        return None
-    return dv / dt
+    if dv >= 0:
+        dt = now - prev_t
+    else:
+        # PM counter reset at a 15-min boundary. now % 900 is the seconds
+        # since the most recent quarter-hour; it is timezone-invariant for
+        # any whole-15-minute UTC offset, so it tracks the device's
+        # :00/:15/:30/:45 reset regardless of device time zone.
+        dv = value
+        dt = now % 900
+    return dv / dt if dt > 0 else None
 
 
 def _parse_gpon(string_table):
@@ -348,8 +363,8 @@ def _check_gpon(item, section) -> CheckResult:
 
     # Byte counters → bytes/sec rates. The raw values come from PM
     # current-interval counters that reset every 15 min, so we track
-    # (timestamp, value) per metric in the value store and drop the
-    # one sample per rollover that shows a negative delta.
+    # (timestamp, value) per metric in the value store and let
+    # _interval_rate() handle the reset boundary (see its docstring).
     value_store = get_value_store()
     now = time.time()
     rates = {}
