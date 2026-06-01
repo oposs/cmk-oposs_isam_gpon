@@ -127,56 +127,29 @@ jobs:
             my ($before, $unreleased_section, $after) =
               $content =~ /^(.*?)(## \[Unreleased\].*?)(?=^## \d|\Z)(.*)/ms;
 
-            # Initialize variables for sections
-            my $has_new = 0;
-            my $has_changed = 0;
-            my $has_fixed = 0;
-            my $new_content = "";
-            my $changed_content = "";
-            my $fixed_content = "";
-
-            # Extract content for each section if it exists
-            if ($unreleased_section =~ /### New(.*?)(?=^###|\Z)/ms) {
-              my $section = $1;
-              $section =~ s/^\s+|\s+$//g;
-              if ($section) {
-                $has_new = 1;
-                $new_content = $section;
-              }
-            }
-
-            if ($unreleased_section =~ /### Changed(.*?)(?=^###|\Z)/ms) {
-              my $section = $1;
-              $section =~ s/^\s+|\s+$//g;
-              if ($section) {
-                $has_changed = 1;
-                $changed_content = $section;
-              }
-            }
-
-            if ($unreleased_section =~ /### Fixed(.*?)(?=^###|\Z)/ms) {
-              my $section = $1;
-              $section =~ s/^\s+|\s+$//g;
-              if ($section) {
-                $has_fixed = 1;
-                $fixed_content = $section;
-              }
+            # Collect every "### <Section>" subsection that has content,
+            # preserving the order the author wrote them. This keeps
+            # non-default sections (Removed, Security, Deprecated, ...)
+            # instead of silently dropping anything that is not New,
+            # Changed or Fixed.
+            my @sections;
+            for my $chunk (split /^### /m, $unreleased_section) {
+              my ($name, $body) = $chunk =~ /^(.*?)\n(.*)$/s;
+              next unless defined $name;
+              $name =~ s/\s+$//;
+              $body =~ s/^\s+|\s+$//g;
+              push @sections, [$name, $body] if length $body;
             }
 
             # Build new Unreleased section
             my $new_unreleased = "## [Unreleased]\n\n".
             "### New\n\n### Changed\n\n### Fixed\n\n";
 
-            # Build version section with only non-empty sections
+            # Build version section with only the non-empty sections,
+            # in author order.
             my $version_section = "## $ENV{VERSION_NO_V} - $ENV{RELEASE_DATE}\n";
-            if ($has_new) {
-              $version_section .= "### New\n$new_content\n\n";
-            }
-            if ($has_changed) {
-              $version_section .= "### Changed\n$changed_content\n\n";
-            }
-            if ($has_fixed) {
-              $version_section .= "### Fixed\n$fixed_content\n\n";
+            for my $s (@sections) {
+              $version_section .= "### $s->[0]\n$s->[1]\n\n";
             }
 
             # Put it all together
