@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 ### Fixed
+
+## 0.2.1 - 2026-06-01
+### Fixed
 - GPON traffic graphs no longer show periodic gaps under 5-minute
   polling. The byte-rate conversion in 0.2.0 dropped any poll whose
   delta went negative, which is exactly the poll that straddles a
