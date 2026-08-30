@@ -10,8 +10,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### New
 
 ### Changed
+- GPON byte-rate conversion now adapts to the poll cadence. When polls are
+  frequent relative to the 5-minute PM window (e.g. a 60 s check interval)
+  consecutive reads are differenced, which yields disjoint intervals so
+  bursts are neither double counted nor smeared. When the counter was
+  cleared in between, the new window's bytes are attributed to the whole
+  span — an undercount bounded by the unmeasured tail, never an overshoot,
+  because the divisor is always the real poll interval. At a poll interval
+  close to the window length differencing is meaningless (both reads sit at
+  almost the same point in the window), so the counter is instead read for
+  what it is — bytes since the window boundary — and divided by the time
+  elapsed since that boundary.
+- Whether a counter clear falls between two readings is decided from the
+  reading **timestamps** against the known 5-minute cycle boundaries, not
+  from whether the value went backwards. Comparing values alone silently
+  differences across a clear whenever a quiet cycle is followed by a burst
+  right after the clear — the readings then still increase. Measured on the
+  device model that case under-reported by 3x (0.83 MB/s for true
+  2.50 MB/s); it is now exact. The value is still consulted inside the
+  late-clear window, where the device has not cleared yet and the timestamps
+  alone would be misleading.
+- Measured byte-integral accuracy against the device model, as
+  stored bytes / true bytes:
+
+  | traffic shape         | 0.2.1 | this, 300 s | this, 60 s |
+  |-----------------------|-------|-------------|------------|
+  | steady                | 0.88  | 0.88        | 0.90       |
+  | burst in 1st minute   | 2.00  | 1.99        | 0.88       |
+  | burst in last minute  | 0.11  | 0.11        | 0.53       |
+  | burst in the middle   | 0.70  | 0.70        | 1.00       |
+
+  At a 60 s check interval the shape-dependent error collapses from an
+  18x spread to about 2x, and no samples are dropped at all. The remaining
+  loss is the tail between the last poll of a window and the counter clear;
+  only the PM interval-history table could recover it.
 
 ### Fixed
+- GPON traffic graphs no longer show impossible spikes far above the GPON
+  line rate. Two facts broke the previous conversion. First, the PM
+  current-interval window is **300 s, not 900 s** — verified on the device
+  by observing a counter clear at a 5-minute boundary that is not a
+  15-minute boundary, and by the interval-history table holding 288
+  five-minute buckets (24 h). Second, the device clears the counter
+  **1–3 s after** the wall-clock boundary, so a poll landing in that gap
+  reads the *complete previous window* while `now % 900` reads as a
+  fraction of a second. Dividing a full window by that produced rates of
+  up to 3600x the line rate. Across 151 monitored ISAM hosts this affected
+  141 hosts with 10,733 impossible samples in 40 days.
+- GPON byte rates were also systematically **too low** between spikes.
+  With a 300 s window and 300 s polling, consecutive polls sit at nearly
+  the same point in the window, so their difference was noise rather than
+  traffic. In simulation against the measured device behaviour the old
+  code reported a median of 0.30 MB/s for steady 2.00 MB/s traffic; the
+  new code reports 1.97 MB/s.
+- Rates above the physical GPON line rate (2.488 Gbps downstream /
+  1.244 Gbps upstream) are now discarded as impossible, and samples taken
+  within 30 s of a window boundary are skipped rather than guessed at.
+  Measured on the live site, the poll phase drifts through the 5-minute
+  window about once an hour, so this drops roughly 1 sample in 10, spread
+  evenly rather than in runs.
 
 ## 0.2.1 - 2026-06-01
 ### Fixed

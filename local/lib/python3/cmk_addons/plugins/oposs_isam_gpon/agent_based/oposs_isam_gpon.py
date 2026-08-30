@@ -31,9 +31,44 @@ from cmk.agent_based.v2 import (
 GPON_DOWNSTREAM_BPS = 2_488_320_000
 GPON_UPSTREAM_BPS = 1_244_160_000
 
+# Measured on the device: the PM current-interval window is 300 s (the
+# interval-history table holds 288 entries = 24 h of 5-minute buckets), and the
+# counter is cleared 1-3 s AFTER the wall-clock boundary.
+_PM_WINDOW = 300
+
+# Never divide by an elapsed time close to zero. Just after a boundary the
+# counter may still hold the complete previous window while the elapsed time
+# reads as a fraction of a second, which produced rates up to 3600x the line
+# rate. Samples taken within this many seconds of a boundary are dropped.
+# The poll phase drifts through the window about once an hour, so this costs
+# roughly 1 sample in 10 and never a run of them. It also bounds the
+# underestimate near the boundary: the device clears up to 3 s late, so the
+# worst case is 3/30 = 10% low.
+_MIN_PHASE = 30
+
+# Two consecutive polls are only worth differencing when they are frequent
+# relative to the PM window. At a poll interval close to the window length the
+# two reads sit at almost the same point in the window, so their difference is
+# noise whose sign is random - that was the 0.2.x failure mode.
+_DIFF_MAX_DT = _PM_WINDOW * 0.8
+
+# Never difference two polls that are almost simultaneous (a manual reschedule,
+# a core restart). The line rate cap below is the second line of defence.
+_MIN_DT = 10
+
+# The device clears the counter 1-3 s AFTER the wall-clock boundary, and its
+# clock is not ours. Inside this many seconds past a boundary a reading may
+# still belong to the previous cycle, so there the value decides; outside it
+# the timestamps decide. See _interval_rate().
+_CLEAR_GRACE = 10
+
+# Physical ceilings in bytes/s, used as a last-resort sanity net.
+_MAX_TX_BYTES_PER_S = GPON_DOWNSTREAM_BPS / 8.0
+_MAX_RX_BYTES_PER_S = GPON_UPSTREAM_BPS / 8.0
+
 # Byte counters fetched from gponOltSidePonUtilPmCurrentIntervalTable.
-# These are PM counters that reset at the start of every 15-minute window,
-# so the check turns them into bytes/sec rates via _interval_rate().
+# These are PM counters that the device clears at the start of every 5-minute
+# window, so the check turns them into bytes/sec rates via _interval_rate().
 _BYTE_COUNTER_FIELDS = [
     "TxUcastBytes", "TxMcastBytes", "TxBcastBytes",
     "TxTotalBytes", "RxTotalBytes",
@@ -237,39 +272,71 @@ def _parse_bitmap_block(result, rows, fields, conv_type):
         result.setdefault(key, {}).update(dic)
 
 
-def _interval_rate(value_store, key, now, value):
-    """Compute a per-second rate from a PM counter that resets every interval.
+def _interval_rate(value_store, key, now, value, max_rate):
+    """Compute a per-second rate from a PM counter that clears every 5 minutes.
 
-    The raw counters come from a 15-minute PM current-interval table that
-    resets to zero at every :00/:15/:30/:45 boundary. Within a window we
-    difference consecutive polls. The poll that straddles a reset produces
-    a negative delta; rather than dropping it (which left a gap in the graph
-    on roughly one in three samples under 5-minute polling), we count the
-    bytes accumulated in the new window and divide by the time elapsed since
-    the 15-minute boundary. For a steady rate that yields the same rate with
-    no gap and no dip; only the byte integral over the reset interval is
-    marginally undercounted (the tail between the last poll and the boundary
-    is not emitted as its own point).
+    The counter is the running total of the current PM window. Measured on the
+    device: the window is 300 s, and the counter is cleared 1-3 s AFTER the
+    wall-clock boundary, so a read inside that gap still returns the complete
+    previous window.
 
-    Returns None only on the first sample, so the value store always carries
-    the most recent reading.
+    Two strategies, picked by how often we are polled:
+
+    Polled well inside the window length (e.g. every 60 s) we difference
+    consecutive reads. The intervals are then disjoint, so bursts are neither
+    double counted nor smeared. When the counter has been cleared in between,
+    the new window's bytes are attributed to the whole span: that undercounts
+    by the unmeasured tail, but the divisor is always the real poll interval so
+    it can never blow up. A read that lands in the late-clear gap is a bonus -
+    it recovers that tail exactly.
+
+    Polled at roughly the window length (the default 300 s) differencing is
+    meaningless, because both reads sit at almost the same point in the window.
+    There we fall back to reading the counter for what it is - bytes since the
+    window boundary - divided by the time elapsed since that boundary, dropping
+    samples too close to the boundary to be trusted. Dividing a complete window
+    by a near-zero elapsed time is what produced graph spikes of up to 3600x
+    the line rate.
+
+    Anything still above the physical line rate is discarded as impossible.
+    Returns None when the sample cannot be trusted.
     """
     prev = value_store.get(key)
     value_store[key] = (now, value)
-    if prev is None:
-        return None
-    prev_t, prev_v = prev
-    dv = value - prev_v
-    if dv >= 0:
+
+    rate = None
+    if prev is not None:
+        prev_t, prev_v = prev
         dt = now - prev_t
-    else:
-        # PM counter reset at a 15-min boundary. now % 900 is the seconds
-        # since the most recent quarter-hour; it is timezone-invariant for
-        # any whole-15-minute UTC offset, so it tracks the device's
-        # :00/:15/:30/:45 reset regardless of device time zone.
-        dv = value
-        dt = now % 900
-    return dv / dt if dt > 0 else None
+        if _MIN_DT <= dt < _DIFF_MAX_DT:
+            # Decide from the TIMESTAMPS whether a clear falls between the two
+            # readings. Comparing the values alone is not enough: two readings
+            # from different cycles can still be increasing (a quiet cycle
+            # followed by a burst right after the clear), which would silently
+            # difference across a clear.
+            same_cycle = (prev_t // _PM_WINDOW) == (now // _PM_WINDOW)
+            in_clear_gap = (now % _PM_WINDOW) < _CLEAR_GRACE
+            if same_cycle or (in_clear_gap and value >= prev_v):
+                # Same cycle, or the device has not cleared yet and the reading
+                # still belongs to the previous cycle. The latter is a bonus: it
+                # recovers the tail that is otherwise lost.
+                delta = value - prev_v if value >= prev_v else value
+            else:
+                # A clear happened in between. Only the bytes since the clear
+                # are known; attributing them to the whole span undercounts by
+                # the unmeasured tail but can never overshoot.
+                delta = value
+            rate = delta / dt
+
+    if rate is None:
+        phase = now % _PM_WINDOW
+        if phase < _MIN_PHASE:
+            return None
+        rate = value / phase
+
+    if rate > max_rate:
+        return None
+    return rate
 
 
 def _parse_gpon(string_table):
@@ -361,17 +428,19 @@ def _check_gpon(item, section) -> CheckResult:
             except (ValueError, IndexError):
                 pass
 
-    # Byte counters → bytes/sec rates. The raw values come from PM
-    # current-interval counters that reset every 15 min, so we track
-    # (timestamp, value) per metric in the value store and let
-    # _interval_rate() handle the reset boundary (see its docstring).
+    # Byte counters → bytes/sec rates. The raw values are PM current-interval
+    # counters that the device clears every 5 min; _interval_rate() adapts to
+    # the poll cadence, see its docstring.
     value_store = get_value_store()
     now = time.time()
     rates = {}
     for metric_key in _BYTE_COUNTER_FIELDS:
         if metric_key not in dic:
             continue
-        rate = _interval_rate(value_store, metric_key, now, dic[metric_key])
+        max_rate = (_MAX_RX_BYTES_PER_S if metric_key.startswith("Rx")
+                    else _MAX_TX_BYTES_PER_S)
+        rate = _interval_rate(value_store, metric_key, now,
+                              dic[metric_key], max_rate)
         if rate is not None:
             rates[metric_key] = rate
             yield Metric("oposs_isam_%sRate" % metric_key, rate)
