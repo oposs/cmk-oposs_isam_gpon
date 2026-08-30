@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### New
 
 ### Changed
+
+### Fixed
+
+## 0.3.0 - 2026-08-30
+### Changed
 - GPON byte-rate conversion now adapts to the poll cadence. When polls are
   frequent relative to the 5-minute PM window (e.g. a 60 s check interval)
   consecutive reads are differenced, which yields disjoint intervals so
