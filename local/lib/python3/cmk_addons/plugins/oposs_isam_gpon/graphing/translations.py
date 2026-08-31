@@ -18,12 +18,26 @@ plugin is uninstalled no service has the legacy command attached, so an
 entry keyed on it would never fire and the legacy ``isam_*.rrd`` files
 in the per-service directory would stay orphaned.
 
-Not migrated: the legacy ``isam_*Bytes`` and ``isam_*Util`` metrics.
-Both were sourced from PM current-interval counters that reset every
-15 minutes but were stored as gauges, so the historical values are
-saw-tooth noise rather than real traffic. Their RRD files are left
-orphaned intentionally; the new ``…BytesRate`` (B/s) and recomputed
-``…Util`` (%) series start fresh.
+Not migrated, deliberately, in two generations:
+
+* The legacy ``isam_*Bytes`` / ``isam_*Util`` metrics were sourced from
+  PM current-interval counters but stored as gauges, so their history is
+  saw-tooth noise rather than traffic.
+* The ``oposs_isam_*BytesRate`` / ``oposs_isam_*Util`` metrics written by
+  0.2.0 through 0.4.0 are also unusable: that rate conversion assumed a
+  900 s PM window where the device uses 300 s, which produced spikes of
+  up to 3600x the line rate and under-reported steady traffic by roughly
+  6x. 0.5.0 renamed them to snake_case (``oposs_isam_tx_total_bytes_rate``
+  and friends) precisely so the new series start empty.
+
+No entry below maps either generation onto a current metric name, and
+none must be added: a ``RenameTo`` would pull that bad history straight
+into the new graphs, and the translation API has no way to filter it
+(it offers only ``RenameTo``, ``ScaleBy`` and ``RenameToAndScaleBy``).
+The orphaned data ages out of the RRDs on its own.
+
+Only genuinely good series are carried over: the SFP optics readings and
+the ONT counters, which no version got wrong.
 """
 
 from cmk.graphing.v1 import translations

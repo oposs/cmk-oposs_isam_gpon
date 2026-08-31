@@ -69,71 +69,71 @@ metric_oposs_isam_temperature = Metric(
 # counters that reset every 15 min — see oposs_isam_gpon.py)
 # ---------------------------------------------------------------------------
 
-metric_oposs_isam_TxUcastBytesRate = Metric(
-    name="oposs_isam_TxUcastBytesRate",
+metric_oposs_isam_tx_ucast_bytes_rate = Metric(
+    name="oposs_isam_tx_ucast_bytes_rate",
     title=Title("Tx Unicast"),
     unit=unit_bytes_per_sec,
     color=Color.BLUE,
 )
 
-metric_oposs_isam_TxMcastBytesRate = Metric(
-    name="oposs_isam_TxMcastBytesRate",
+metric_oposs_isam_tx_mcast_bytes_rate = Metric(
+    name="oposs_isam_tx_mcast_bytes_rate",
     title=Title("Tx Multicast"),
     unit=unit_bytes_per_sec,
     color=Color.GREEN,
 )
 
-metric_oposs_isam_TxBcastBytesRate = Metric(
-    name="oposs_isam_TxBcastBytesRate",
+metric_oposs_isam_tx_bcast_bytes_rate = Metric(
+    name="oposs_isam_tx_bcast_bytes_rate",
     title=Title("Tx Broadcast"),
     unit=unit_bytes_per_sec,
     color=Color.ORANGE,
 )
 
-metric_oposs_isam_TxTotalBytesRate = Metric(
-    name="oposs_isam_TxTotalBytesRate",
+metric_oposs_isam_tx_total_bytes_rate = Metric(
+    name="oposs_isam_tx_total_bytes_rate",
     title=Title("Tx Total"),
     unit=unit_bytes_per_sec,
     color=Color.DARK_BLUE,
 )
 
-metric_oposs_isam_RxTotalBytesRate = Metric(
-    name="oposs_isam_RxTotalBytesRate",
+metric_oposs_isam_rx_total_bytes_rate = Metric(
+    name="oposs_isam_rx_total_bytes_rate",
     title=Title("Rx Total"),
     unit=unit_bytes_per_sec,
     color=Color.DARK_GREEN,
 )
 
-metric_oposs_isam_TxUcastDropBytesRate = Metric(
-    name="oposs_isam_TxUcastDropBytesRate",
+metric_oposs_isam_tx_ucast_drop_bytes_rate = Metric(
+    name="oposs_isam_tx_ucast_drop_bytes_rate",
     title=Title("Tx Unicast Drop"),
     unit=unit_bytes_per_sec,
     color=Color.DARK_RED,
 )
 
-metric_oposs_isam_RxTotalDropBytesRate = Metric(
-    name="oposs_isam_RxTotalDropBytesRate",
+metric_oposs_isam_rx_total_drop_bytes_rate = Metric(
+    name="oposs_isam_rx_total_drop_bytes_rate",
     title=Title("Rx Total Drop"),
     unit=unit_bytes_per_sec,
     color=Color.DARK_ORANGE,
 )
 
-metric_oposs_isam_TxMcastDropBytesRate = Metric(
-    name="oposs_isam_TxMcastDropBytesRate",
+metric_oposs_isam_tx_mcast_drop_bytes_rate = Metric(
+    name="oposs_isam_tx_mcast_drop_bytes_rate",
     title=Title("Tx Multicast Drop"),
     unit=unit_bytes_per_sec,
     color=Color.DARK_YELLOW,
 )
 
-metric_oposs_isam_TxBcastDropBytesRate = Metric(
-    name="oposs_isam_TxBcastDropBytesRate",
+metric_oposs_isam_tx_bcast_drop_bytes_rate = Metric(
+    name="oposs_isam_tx_bcast_drop_bytes_rate",
     title=Title("Tx Broadcast Drop"),
     unit=unit_bytes_per_sec,
     color=Color.DARK_PINK,
 )
 
-metric_oposs_isam_TxTotalDropBytesRate = Metric(
-    name="oposs_isam_TxTotalDropBytesRate",
+metric_oposs_isam_tx_total_drop_bytes_rate = Metric(
+    name="oposs_isam_tx_total_drop_bytes_rate",
     title=Title("Tx Total Drop"),
     unit=unit_bytes_per_sec,
     color=Color.DARK_CYAN,
@@ -143,36 +143,36 @@ metric_oposs_isam_TxTotalDropBytesRate = Metric(
 # Utilization metrics
 # ---------------------------------------------------------------------------
 
-metric_oposs_isam_TxUcastUtil = Metric(
-    name="oposs_isam_TxUcastUtil",
+metric_oposs_isam_tx_ucast_util = Metric(
+    name="oposs_isam_tx_ucast_util",
     title=Title("Tx Unicast Utilization"),
     unit=unit_percent,
     color=Color.BLUE,
 )
 
-metric_oposs_isam_TxMcastUtil = Metric(
-    name="oposs_isam_TxMcastUtil",
+metric_oposs_isam_tx_mcast_util = Metric(
+    name="oposs_isam_tx_mcast_util",
     title=Title("Tx Multicast Utilization"),
     unit=unit_percent,
     color=Color.GREEN,
 )
 
-metric_oposs_isam_TxBcastUtil = Metric(
-    name="oposs_isam_TxBcastUtil",
+metric_oposs_isam_tx_bcast_util = Metric(
+    name="oposs_isam_tx_bcast_util",
     title=Title("Tx Broadcast Utilization"),
     unit=unit_percent,
     color=Color.ORANGE,
 )
 
-metric_oposs_isam_TxTotalUtil = Metric(
-    name="oposs_isam_TxTotalUtil",
+metric_oposs_isam_tx_total_util = Metric(
+    name="oposs_isam_tx_total_util",
     title=Title("Tx Total Utilization"),
     unit=unit_percent,
     color=Color.DARK_BLUE,
 )
 
-metric_oposs_isam_RxTotalUtil = Metric(
-    name="oposs_isam_RxTotalUtil",
+metric_oposs_isam_rx_total_util = Metric(
+    name="oposs_isam_rx_total_util",
     title=Title("Rx Total Utilization"),
     unit=unit_percent,
     color=Color.DARK_GREEN,
@@ -213,8 +213,8 @@ graph_oposs_isam_traffic = Graph(
     name="oposs_isam_traffic",
     title=Title("ISAM GPON Traffic"),
     simple_lines=[
-        "oposs_isam_TxTotalBytesRate",
-        "oposs_isam_RxTotalBytesRate",
+        "oposs_isam_tx_total_bytes_rate",
+        "oposs_isam_rx_total_bytes_rate",
     ],
 )
 
@@ -222,8 +222,8 @@ graph_oposs_isam_traffic_drops = Graph(
     name="oposs_isam_traffic_drops",
     title=Title("ISAM GPON Traffic Drops"),
     simple_lines=[
-        "oposs_isam_TxTotalDropBytesRate",
-        "oposs_isam_RxTotalDropBytesRate",
+        "oposs_isam_tx_total_drop_bytes_rate",
+        "oposs_isam_rx_total_drop_bytes_rate",
     ],
 )
 
@@ -231,7 +231,7 @@ graph_oposs_isam_utilization = Graph(
     name="oposs_isam_utilization",
     title=Title("ISAM GPON Utilization"),
     simple_lines=[
-        "oposs_isam_TxTotalUtil",
-        "oposs_isam_RxTotalUtil",
+        "oposs_isam_tx_total_util",
+        "oposs_isam_rx_total_util",
     ],
 )

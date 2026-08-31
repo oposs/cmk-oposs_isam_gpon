@@ -10,6 +10,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### New
 
 ### Changed
+- **Breaking for graph history:** the 10 traffic-rate and 5 utilization
+  metrics are renamed to snake_case, and no translation maps the old names
+  onto the new ones. This is deliberate. Every value these series hold was
+  written by 0.2.0 through 0.4.0, whose rate conversion assumed a 900 s PM
+  window where the device uses 300 s — producing spikes of up to 3600x the
+  line rate and under-reporting steady traffic by roughly 6x. The history is
+  not salvageable: filtering the spikes would leave a graph that looks
+  entirely plausible and is still off by a factor of six, and the translation
+  API offers no filtering anyway (only `RenameTo`, `ScaleBy` and
+  `RenameToAndScaleBy`). The new series start empty.
+
+  | old | new |
+  |-----|-----|
+  | `oposs_isam_TxUcastBytesRate` | `oposs_isam_tx_ucast_bytes_rate` |
+  | `oposs_isam_TxMcastBytesRate` | `oposs_isam_tx_mcast_bytes_rate` |
+  | `oposs_isam_TxBcastBytesRate` | `oposs_isam_tx_bcast_bytes_rate` |
+  | `oposs_isam_TxTotalBytesRate` | `oposs_isam_tx_total_bytes_rate` |
+  | `oposs_isam_RxTotalBytesRate` | `oposs_isam_rx_total_bytes_rate` |
+  | `oposs_isam_TxUcastDropBytesRate` | `oposs_isam_tx_ucast_drop_bytes_rate` |
+  | `oposs_isam_RxTotalDropBytesRate` | `oposs_isam_rx_total_drop_bytes_rate` |
+  | `oposs_isam_TxMcastDropBytesRate` | `oposs_isam_tx_mcast_drop_bytes_rate` |
+  | `oposs_isam_TxBcastDropBytesRate` | `oposs_isam_tx_bcast_drop_bytes_rate` |
+  | `oposs_isam_TxTotalDropBytesRate` | `oposs_isam_tx_total_drop_bytes_rate` |
+  | `oposs_isam_TxUcastUtil` | `oposs_isam_tx_ucast_util` |
+  | `oposs_isam_TxMcastUtil` | `oposs_isam_tx_mcast_util` |
+  | `oposs_isam_TxBcastUtil` | `oposs_isam_tx_bcast_util` |
+  | `oposs_isam_TxTotalUtil` | `oposs_isam_tx_total_util` |
+  | `oposs_isam_RxTotalUtil` | `oposs_isam_rx_total_util` |
+
+  The SFP optics metrics (`oposs_isam_txpower`, `oposs_isam_rxpower`,
+  `oposs_isam_voltage`, `oposs_isam_temperature`,
+  `oposs_isam_bias_current`), `oposs_isam_NumActiveOnts` and
+  `oposs_isam_RxDBACongestionTime` keep their names **and their history** —
+  no version got those wrong. Because the RRD format is `cmc_single`, all of
+  a service's metrics share one file, so renaming is the only way to reset
+  the bad series without destroying the good ones alongside them.
+
+  Service names, items and check behaviour are unchanged; no rediscovery is
+  needed. Graph and perfometer names are unchanged.
 
 ### Fixed
 

@@ -76,13 +76,31 @@ _BYTE_COUNTER_FIELDS = [
     "TxMcastDropBytes", "TxBcastDropBytes", "TxTotalDropBytes",
 ]
 
-# Utilization metrics derived from the rates above.
+# Metric name per byte counter. Deliberately NOT derived from the field name:
+# these were renamed in 0.5.0 to orphan the RRD history written by 0.2.0-0.4.0,
+# whose rate conversion was wrong (see CHANGES.md). No translation maps the old
+# names onto these, so the series start empty. Keep them explicit so a field
+# rename cannot silently resurrect an old metric name.
+_RATE_METRIC = {
+    "TxUcastBytes": "oposs_isam_tx_ucast_bytes_rate",
+    "TxMcastBytes": "oposs_isam_tx_mcast_bytes_rate",
+    "TxBcastBytes": "oposs_isam_tx_bcast_bytes_rate",
+    "TxTotalBytes": "oposs_isam_tx_total_bytes_rate",
+    "RxTotalBytes": "oposs_isam_rx_total_bytes_rate",
+    "TxUcastDropBytes": "oposs_isam_tx_ucast_drop_bytes_rate",
+    "RxTotalDropBytes": "oposs_isam_rx_total_drop_bytes_rate",
+    "TxMcastDropBytes": "oposs_isam_tx_mcast_drop_bytes_rate",
+    "TxBcastDropBytes": "oposs_isam_tx_bcast_drop_bytes_rate",
+    "TxTotalDropBytes": "oposs_isam_tx_total_drop_bytes_rate",
+}
+
+# Utilization metrics derived from the rates above: (metric, counter, line rate).
 _UTIL_DERIVATIONS = [
-    ("TxUcastUtil", "TxUcastBytes", GPON_DOWNSTREAM_BPS),
-    ("TxMcastUtil", "TxMcastBytes", GPON_DOWNSTREAM_BPS),
-    ("TxBcastUtil", "TxBcastBytes", GPON_DOWNSTREAM_BPS),
-    ("TxTotalUtil", "TxTotalBytes", GPON_DOWNSTREAM_BPS),
-    ("RxTotalUtil", "RxTotalBytes", GPON_UPSTREAM_BPS),
+    ("oposs_isam_tx_ucast_util", "TxUcastBytes", GPON_DOWNSTREAM_BPS),
+    ("oposs_isam_tx_mcast_util", "TxMcastBytes", GPON_DOWNSTREAM_BPS),
+    ("oposs_isam_tx_bcast_util", "TxBcastBytes", GPON_DOWNSTREAM_BPS),
+    ("oposs_isam_tx_total_util", "TxTotalBytes", GPON_DOWNSTREAM_BPS),
+    ("oposs_isam_rx_total_util", "RxTotalBytes", GPON_UPSTREAM_BPS),
 ]
 
 # ---------------------------------------------------------------------------
@@ -487,15 +505,15 @@ def _check_gpon(item, section_oposs_isam_gpon,
                               dic[metric_key], max_rate)
         if rate is not None:
             rates[metric_key] = rate
-            yield Metric("oposs_isam_%sRate" % metric_key, rate)
+            yield Metric(_RATE_METRIC[metric_key], rate)
 
     # Utilization derived from byte rates against the GPON line rate.
     # Replaces the device-reported Util fields, which were also tied to
     # the resetting PM interval and so equally distorted.
-    for util_key, bytes_key, line_rate_bps in _UTIL_DERIVATIONS:
+    for util_metric, bytes_key, line_rate_bps in _UTIL_DERIVATIONS:
         if bytes_key in rates:
             util_pct = rates[bytes_key] * 8.0 / line_rate_bps * 100.0
-            yield Metric("oposs_isam_%s" % util_key, util_pct)
+            yield Metric(util_metric, util_pct)
 
     # Plain gauges from the same SNMP block.
     for metric_key in ["NumActiveOnts", "RxDBACongestionTime"]:
