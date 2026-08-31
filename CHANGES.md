@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### New
+
+### Changed
+
+### Fixed
+
+## 0.5.1 - 2026-08-31
+### New
 - Manual page (`checkman/oposs_isam_gpon`), shown in the Checkmk GUI under the
   service's *Manual page*. Documents what the check monitors, how the traffic
   rates are derived from the 300 s PM window, the two SNMP sections and which
@@ -22,8 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   every source file has always carried. The `LICENSE` file previously held
   the MIT text, which contradicted them.
 - README file tree corrected: it omitted `graphing/translations.py`.
-
-### Fixed
 
 ## 0.5.0 - 2026-08-31
 ### Changed
