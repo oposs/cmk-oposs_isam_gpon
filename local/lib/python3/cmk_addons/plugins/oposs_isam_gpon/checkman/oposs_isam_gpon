@@ -1,0 +1,67 @@
+title: Nokia ISAM: GPON port status, SFP optics and traffic
+agents: snmp
+catalog: hw/network/alcatel
+license: GPLv2
+distribution: check_mk
+description:
+ Monitors the GPON ports of a Nokia ISAM OLT. One service per line-card port.
+
+ The service state compares the port's administrative and operational status:
+ {OK} when they agree, {UNKNOWN} when the operational status is "unknown",
+ {CRIT} otherwise.
+
+ Metrics: SFP optics (Tx power, Rx power, supply voltage, temperature, bias
+ current), traffic rates in bytes per second for unicast, multicast, broadcast
+ and total in both directions, the matching drop rates, utilization against the
+ ITU-T G.984 line rates (2.488 Gbit/s downstream, 1.244 Gbit/s upstream), the
+ number of active ONTs and the DBA congestion time.
+
+ Optics values the device reports as "not-available" are skipped rather than
+ recorded as zero. On the OLT side Rx power is normally not available per PON
+ port, so that metric is usually absent.
+
+ Traffic rates are derived from the performance-monitoring current-interval
+ counters, which the device clears every 300 seconds, one to three seconds
+ after the wall-clock boundary. The check adapts to how often it is polled: at
+ a short interval it differences consecutive readings, using the reading
+ timestamps against the known cycle boundaries to decide whether a clear fell
+ between them; at an interval close to the window length it instead divides the
+ counter by the time elapsed since the window boundary. Rates above the
+ physical line rate are discarded as impossible.
+
+ This plugin provides two SNMP sections. {oposs_isam_gpon} carries the
+ performance-monitoring counters and is cheap, about one second per host.
+ {oposs_isam_gpon_info} carries the SFP optics inventory, the port descriptions
+ and the interface status; it is expensive, because the optics table is read
+ from the SFP hardware on demand, and it accounts for roughly half of the whole
+ host's SNMP fetch time.
+
+ The split exists so a short check interval stays affordable. Measured on a
+ 16-port OLT, per 300 seconds of wall time:
+
+ 300 s check interval: 18 s of SNMP. 60 s check interval without caching: 68 s,
+ 3.8 times as much. 60 s check interval with {oposs_isam_gpon_info} cached at
+ 300 s: 22 s, 1.2 times as much.
+
+ To use a 60 second interval, set "Normal check interval for service checks"
+ to one minute for these hosts (scoping the rule to the service {Check_MK$} is
+ enough, since that is what drives the SNMP fetch), and add
+ {oposs_isam_gpon_info} and {oposs_isam_linecard} to a "Fetch intervals for
+ SNMP sections" rule at 300 seconds. Do not add {oposs_isam_gpon} there.
+
+ The plugin also works unchanged at the default interval; the shorter interval
+ mainly improves how faithfully bursty traffic is represented.
+
+ Note for upgrades to 0.5.0: the traffic rate and utilization metrics were
+ renamed, without a translation, so their graphs start empty. Every value they
+ held was written by 0.2.0 through 0.4.0, whose rate conversion assumed a
+ 900 second window where the device uses 300, producing spikes far above the
+ line rate and under-reporting steady traffic. The optics metrics and the ONT
+ counters keep their history.
+
+item:
+ The port path as reported by the device, for example {lt:1/1/1/01}.
+
+discovery:
+ One service is created for each line-card port, that is every item whose path
+ starts with {lt:}.

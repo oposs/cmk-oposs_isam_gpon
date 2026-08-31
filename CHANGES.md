@@ -8,8 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### New
+- Manual page (`checkman/oposs_isam_gpon`), shown in the Checkmk GUI under the
+  service's *Manual page*. Documents what the check monitors, how the traffic
+  rates are derived from the 300 s PM window, the two SNMP sections and which
+  of them to cache, the measured cost of each polling option, and the fact
+  that the 0.5.0 metric rename restarts the traffic graphs.
+- README section on polling and caching, with the exact WATO ruleset names
+  ("Normal check interval for service checks", "Fetch intervals for SNMP
+  sections") so the setup is findable without reading the changelog.
 
 ### Changed
+- Licence is now GNU General Public License v2, matching the headers that
+  every source file has always carried. The `LICENSE` file previously held
+  the MIT text, which contradicted them.
+- README file tree corrected: it omitted `graphing/translations.py`.
 
 ### Fixed
 
