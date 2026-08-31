@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### New
+
+### Changed
+
+### Fixed
+
+## 0.4.0 - 2026-08-31
+### New
 - New SNMP section `oposs_isam_gpon_info` carrying the SFP optics inventory,
   port descriptions and interface admin/oper status. The check plugin
   `oposs_isam_gpon` now consumes both sections; services, items and metric
