@@ -340,7 +340,41 @@ def _interval_rate(value_store, key, now, value, max_rate):
 
 
 def _parse_gpon(string_table):
-    """Parse GPON data from 5 SNMP trees."""
+    """Parse the fast PM section: 2 SNMP trees, both under the PM table.
+
+    This is the only GPON data that is worth fetching at a short interval, and
+    it is cheap: measured on the device the PM table walks in ~1 s against the
+    ~11 s of the inventory section. Keeping the two apart lets the slow half be
+    cached (see the module docstring of _parse_gpon_info).
+    """
+    result = {}
+
+    # Block 0: PM - NumActiveOnts, RxDBACongestionTime (float)
+    _parse_bitmap_block(
+        result, string_table[0],
+        ["NumActiveOnts", "RxDBACongestionTime"], "float",
+    )
+
+    # Block 1: PM - byte counters (8-byte big-endian, cleared every 5-min PM
+    # window — rate computation happens in the check function).
+    _parse_bitmap_block(
+        result, string_table[1],
+        _BYTE_COUNTER_FIELDS,
+        "8bytes",
+    )
+
+    return result
+
+
+def _parse_gpon_info(string_table):
+    """Parse the slow inventory section: 3 SNMP trees.
+
+    SFP optics, port descriptions and interface status all change slowly, but
+    the optics tree costs ~23 ms per row on the device (it reads the SFP
+    hardware on demand) and dominates the whole host check. Split out so a
+    "Fetch intervals for SNMP sections" rule can cache it while the PM
+    counters above are fetched every check.
+    """
     result = {}
 
     # Block 0: Enterprise GPON inventory
@@ -355,57 +389,67 @@ def _parse_gpon(string_table):
         if key:
             result.setdefault(key, {}).update(dict(zip(gpon_fields, row[1:])))
 
-    # Block 1: PM - NumActiveOnts, RxDBACongestionTime (float)
-    _parse_bitmap_block(
-        result, string_table[1],
-        ["NumActiveOnts", "RxDBACongestionTime"], "float",
-    )
+    # Block 1: Description
+    _parse_bitmap_block(result, string_table[1], ["description"], "")
 
-    # Block 2: PM - byte counters (8-byte big-endian, reset every 15-min PM
-    # window — rate computation happens in the check function).
-    _parse_bitmap_block(
-        result, string_table[2],
-        _BYTE_COUNTER_FIELDS,
-        "8bytes",
-    )
-
-    # Block 3: Description
-    _parse_bitmap_block(result, string_table[3], ["description"], "")
-
-    # Block 4: Standard IF admin/oper status
-    _parse_bitmap_block(result, string_table[4], ["adminstatus", "operstatus"], "")
+    # Block 2: Standard IF admin/oper status
+    _parse_bitmap_block(result, string_table[2], ["adminstatus", "operstatus"], "")
 
     return result
 
 
-def _discover_gpon(section) -> DiscoveryResult:
-    for key in section:
-        if key.startswith("lt:"):
-            yield Service(item=key)
+def _gpon_items(section_pm, section_info):
+    """Every line-card port seen by either section, in a stable order."""
+    keys = set()
+    for section in (section_info, section_pm):
+        if section:
+            keys.update(k for k in section if k.startswith("lt:"))
+    return sorted(keys)
 
 
-def _check_gpon(item, section) -> CheckResult:
-    if item not in section:
+def _discover_gpon(section_oposs_isam_gpon,
+                   section_oposs_isam_gpon_info) -> DiscoveryResult:
+    for key in _gpon_items(section_oposs_isam_gpon, section_oposs_isam_gpon_info):
+        yield Service(item=key)
+
+
+def _check_gpon(item, section_oposs_isam_gpon,
+                section_oposs_isam_gpon_info) -> CheckResult:
+    # The two sections are fetched on different intervals, so merge whichever
+    # of them carries this item. Inventory first, PM data on top: no field
+    # names overlap, but PM is the fresher of the two.
+    dic = {}
+    for section in (section_oposs_isam_gpon_info, section_oposs_isam_gpon):
+        if section and item in section:
+            dic.update(section[item])
+    if not dic:
         return
-    dic = section[item]
 
-    # Result: compare admin vs oper status
-    admin = dic.get("adminstatus", "")
-    oper = dic.get("operstatus", "")
-    if admin == oper:
-        state = State.OK
-    elif oper == "4":
-        state = State.UNKNOWN
+    # Result: compare admin vs oper status. Both come from the slow section, so
+    # they can be absent while traffic data is present - report that honestly
+    # instead of comparing two empty strings and calling it OK.
+    if "adminstatus" not in dic and "operstatus" not in dic:
+        yield Result(
+            state=State.UNKNOWN,
+            summary="Port status unavailable (oposs_isam_gpon_info section missing)",
+        )
     else:
-        state = State.CRIT
-    yield Result(
-        state=state,
-        summary="%s \u2013 OperStatus: %s, AdminStatus: %s" % (
-            dic.get("description", ""),
-            OPER_STATUS.get(oper, oper),
-            ADMIN_STATUS.get(admin, admin),
-        ),
-    )
+        admin = dic.get("adminstatus", "")
+        oper = dic.get("operstatus", "")
+        if admin == oper:
+            state = State.OK
+        elif oper == "4":
+            state = State.UNKNOWN
+        else:
+            state = State.CRIT
+        yield Result(
+            state=state,
+            summary="%s \u2013 OperStatus: %s, AdminStatus: %s" % (
+                dic.get("description", ""),
+                OPER_STATUS.get(oper, oper),
+                ADMIN_STATUS.get(admin, admin),
+            ),
+        )
 
     # SFP optics metrics (conditionally available)
     bc = dic.get("biascurrent", "not-available")
@@ -459,29 +503,14 @@ def _check_gpon(item, section) -> CheckResult:
             yield Metric("oposs_isam_%s" % metric_key, dic[metric_key])
 
 
+# Fast section: the PM counters only. Left uncached so it is fetched on every
+# check run; measured at ~1 s on the device.
 snmp_section_oposs_isam_gpon = SNMPSection(
     name="oposs_isam_gpon",
     detect=contains(".1.3.6.1.2.1.1.1.0", "NOKIA ISAM"),
     parse_function=_parse_gpon,
     fetch=[
-        # 0: Enterprise GPON inventory
-        SNMPTree(
-            base=".1.3.6.1.4.1.637.61.1.56.5.1",
-            oids=[
-                OIDEnd(),
-                "1",   # logicalSlot
-                "2",   # facePlateId
-                "3",   # availability
-                "4",   # signalStatus
-                "5",   # faultStatus
-                "6",   # txPower
-                "7",   # rxPower
-                "8",   # biasCurrent
-                "9",   # Voltage
-                "10",  # Temperature
-            ],
-        ),
-        # 1: PM - NumActiveOnts, RxDBACongestionTime
+        # 0: PM - NumActiveOnts, RxDBACongestionTime
         SNMPTree(
             base=".1.3.6.1.4.1.637.61.1.35.21.57.1",
             oids=[
@@ -490,7 +519,7 @@ snmp_section_oposs_isam_gpon = SNMPSection(
                 "17",  # RxDBACongestionTime
             ],
         ),
-        # 2: PM - byte counters (8-byte OIDBytes, reset every 15 min;
+        # 1: PM - byte counters (8-byte OIDBytes, cleared every 5 min;
         # check turns them into rates and derives utilization)
         SNMPTree(
             base=".1.3.6.1.4.1.637.61.1.35.21.57.1",
@@ -508,7 +537,36 @@ snmp_section_oposs_isam_gpon = SNMPSection(
                 OIDBytes("20"),  # TxTotalDropBytes
             ],
         ),
-        # 3: GPON descriptions
+    ],
+)
+
+# Slow section: SFP optics, descriptions and interface status. All of it
+# changes slowly, and the optics tree alone is roughly ten times the cost of
+# the PM tree above, so give this section a "Fetch intervals for SNMP sections"
+# rule (300 s) when the host is checked more often than that.
+snmp_section_oposs_isam_gpon_info = SNMPSection(
+    name="oposs_isam_gpon_info",
+    detect=contains(".1.3.6.1.2.1.1.1.0", "NOKIA ISAM"),
+    parse_function=_parse_gpon_info,
+    fetch=[
+        # 0: Enterprise GPON inventory (SFP optics) - the expensive one
+        SNMPTree(
+            base=".1.3.6.1.4.1.637.61.1.56.5.1",
+            oids=[
+                OIDEnd(),
+                "1",   # logicalSlot
+                "2",   # facePlateId
+                "3",   # availability
+                "4",   # signalStatus
+                "5",   # faultStatus
+                "6",   # txPower
+                "7",   # rxPower
+                "8",   # biasCurrent
+                "9",   # Voltage
+                "10",  # Temperature
+            ],
+        ),
+        # 1: GPON descriptions
         SNMPTree(
             base=".1.3.6.1.4.1.637.61.1.35.11.2.1",
             oids=[
@@ -516,7 +574,7 @@ snmp_section_oposs_isam_gpon = SNMPSection(
                 "19",  # description
             ],
         ),
-        # 4: Standard IF admin/oper status
+        # 2: Standard IF admin/oper status
         SNMPTree(
             base=".1.3.6.1.2.1.2.2.1",
             oids=[
@@ -530,7 +588,9 @@ snmp_section_oposs_isam_gpon = SNMPSection(
 
 check_plugin_oposs_isam_gpon = CheckPlugin(
     name="oposs_isam_gpon",
-    sections=["oposs_isam_gpon"],
+    # With more than one section the discovery and check functions take one
+    # `section_<name>` argument per entry, in this order.
+    sections=["oposs_isam_gpon", "oposs_isam_gpon_info"],
     service_name="GPON %s",
     discovery_function=_discover_gpon,
     check_function=_check_gpon,

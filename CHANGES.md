@@ -8,10 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### New
+- New SNMP section `oposs_isam_gpon_info` carrying the SFP optics inventory,
+  port descriptions and interface admin/oper status. The check plugin
+  `oposs_isam_gpon` now consumes both sections; services, items and metric
+  names are unchanged, so no rediscovery is needed.
 
 ### Changed
+- `oposs_isam_gpon` is now the PM counter section only. Splitting it lets the
+  expensive half be cached independently. Measured on the device, the
+  enterprise optics tree walks 1080 rows at ~23 ms per row (the device reads
+  the SFP hardware on demand) and accounts for roughly half of the whole
+  host's 18 s SNMP fetch, while the PM tree it was bundled with costs about
+  1 s.
+
+  This makes a short check interval affordable. Fetch cost per 300 s of wall
+  time on a 16-port OLT:
+
+  | setup                                  | SNMP per 300 s |
+  |----------------------------------------|----------------|
+  | 300 s check interval (before)          | 18 s           |
+  | 60 s check interval, unsplit           | 68 s  (3.8x)   |
+  | 60 s check interval, split + cached    | 22 s  (1.2x)   |
+
+  To use it, set the check interval to 60 s and add `oposs_isam_gpon_info`
+  (and `oposs_isam_linecard`) to a "Fetch intervals for SNMP sections" rule
+  at 300 s. At 60 s the byte-integral accuracy improves markedly — see the
+  0.3.0 notes for the measured figures.
 
 ### Fixed
+- The port status result no longer reports a bogus `OK` with an empty summary
+  when the inventory section is unavailable. It now reports `UNKNOWN` with an
+  explicit reason, while traffic metrics keep flowing.
 
 ## 0.3.0 - 2026-08-30
 ### Changed
