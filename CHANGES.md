@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### New
 
 ### Changed
+
+### Fixed
+
+## 0.5.0 - 2026-08-31
+### Changed
 - **Breaking for graph history:** the 10 traffic-rate and 5 utilization
   metrics are renamed to snake_case, and no translation maps the old names
   onto the new ones. This is deliberate. Every value these series hold was
@@ -49,8 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
   Service names, items and check behaviour are unchanged; no rediscovery is
   needed. Graph and perfometer names are unchanged.
-
-### Fixed
 
 ## 0.4.0 - 2026-08-31
 ### New
