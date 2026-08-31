@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### New
 
 ### Changed
+- Licence is GNU General Public License **v3**, not v2. `SLOT_TABLE` and
+  `PORT_TABLE_NT` are taken verbatim from LibreNMS, which is GPL v3, and
+  v3 code cannot be relicensed down to v2. The source headers, the
+  `LICENSE` file, the README and the manual page's `license:` field all
+  say v3 now. No code change.
 
 ### Fixed
 

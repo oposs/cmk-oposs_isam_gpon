@@ -102,7 +102,8 @@ local/lib/python3/cmk_addons/plugins/oposs_isam_gpon/
 
 ## License
 
-GNU General Public License v2 - OETIKER+PARTNER AG. See [LICENSE](LICENSE).
+GNU General Public License v3 - OETIKER+PARTNER AG. See [LICENSE](LICENSE).
 
-The slot lookup table in `agent_based/oposs_isam_gpon.py` is attributed to
-LibreNMS; see the commit link in the source.
+v3 rather than v2 because `SLOT_TABLE` and `PORT_TABLE_NT` in
+`agent_based/oposs_isam_gpon.py` are taken from LibreNMS, which is GPL v3;
+see the commit link in the source. GPL v3 code cannot be relicensed to v2.

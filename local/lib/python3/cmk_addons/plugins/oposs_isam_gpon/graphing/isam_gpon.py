@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (C) 2025 OETIKER+PARTNER AG - License: GNU General Public License v2
+# Copyright (C) 2025 OETIKER+PARTNER AG - License: GNU General Public License v3
 
 """
 Graphing definitions for Nokia ISAM GPON monitoring.

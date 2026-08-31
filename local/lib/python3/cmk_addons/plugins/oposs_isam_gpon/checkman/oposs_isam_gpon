@@ -1,7 +1,7 @@
 title: Nokia ISAM: GPON port status, SFP optics and traffic
 agents: snmp
 catalog: hw/network/alcatel
-license: GPLv2
+license: GPLv3
 distribution: check_mk
 description:
  Monitors the GPON ports of a Nokia ISAM OLT. One service per line-card port.
