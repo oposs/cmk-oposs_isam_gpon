@@ -285,8 +285,13 @@ def _parse_bitmap_block(result, rows, fields, conv_type):
                 else:
                     del dic[field]
         elif conv_type == "float":
-            for field, val in dic.items():
-                dic[field] = float(val)
+            # SNMP delivers "" for a column the device does not answer for
+            # an index; skip that value and keep the rest of the row.
+            for field, val in list(dic.items()):
+                try:
+                    dic[field] = float(val)
+                except ValueError:
+                    del dic[field]
         result.setdefault(key, {}).update(dic)
 
 
@@ -484,7 +489,8 @@ def _check_gpon(item, section_oposs_isam_gpon,
         ("oposs_isam_temperature", "temperature"),
     ]:
         val = dic.get(key, "")
-        if val and val[0:1].isdigit():
+        # Rx power in dBm and a sub-zero temperature are negative.
+        if val and val.lstrip("-")[0:1].isdigit():
             try:
                 yield Metric(name, float(val.split(" ")[0]))
             except (ValueError, IndexError):

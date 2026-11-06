@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   say v3 now. No code change.
 
 ### Fixed
+- When the OLT left the active-ONT count or the DBA congestion time of a
+  single port empty, every "GPON" service on the host lost its data and
+  Checkmk reported a crash while parsing the `oposs_isam_gpon` section. The
+  empty value is now skipped; the rest of that port and all other ports are
+  checked as before.
+- The "GPON" services recorded no Rx power and no SFP temperature whenever
+  the reading was negative, such as `-18.40 dBm` or a temperature below 0 °C.
+  Negative readings are now recorded like positive ones.
 
 ## 0.5.1 - 2026-08-31
 ### New
