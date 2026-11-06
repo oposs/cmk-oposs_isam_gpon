@@ -65,7 +65,7 @@ metric_oposs_isam_temperature = Metric(
 
 # ---------------------------------------------------------------------------
 # Traffic byte-rate metrics (bytes per second, derived from PM interval
-# counters that reset every 15 min — see oposs_isam_gpon.py)
+# counters that the device clears every 300 s — see oposs_isam_gpon.py)
 # ---------------------------------------------------------------------------
 
 metric_oposs_isam_tx_ucast_bytes_rate = Metric(
