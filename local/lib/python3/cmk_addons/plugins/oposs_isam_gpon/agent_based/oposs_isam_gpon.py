@@ -285,8 +285,13 @@ def _parse_bitmap_block(result, rows, fields, conv_type):
                 else:
                     del dic[field]
         elif conv_type == "float":
-            for field, val in dic.items():
-                dic[field] = float(val)
+            # SNMP delivers "" for a column the device does not answer for
+            # an index; skip that value and keep the rest of the row.
+            for field, val in list(dic.items()):
+                try:
+                    dic[field] = float(val)
+                except ValueError:
+                    del dic[field]
         result.setdefault(key, {}).update(dic)
 
 

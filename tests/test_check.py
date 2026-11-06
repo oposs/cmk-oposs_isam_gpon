@@ -223,11 +223,20 @@ def test_gpon_pm_parse_drops_counters_that_are_not_eight_bytes(check):
     assert "RxTotalBytes" in port
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: an empty PM gauge value makes the whole oposs_isam_gpon section fail to parse")
 def test_gpon_pm_parse_survives_empty_gauge(check):
     # SNMP delivers "" for a column the device does not answer for an index.
     section = check._parse_gpon(pm_section(_pm(P1, congestion=""), _pm(P2)))
     assert sorted(section) == ["lt:1/1/1/01", "lt:1/1/1/02"]
+    assert "RxDBACongestionTime" not in section["lt:1/1/1/01"]
+    assert section["lt:1/1/1/01"]["NumActiveOnts"] == 12.0
+    assert section["lt:1/1/1/02"]["RxDBACongestionTime"] == 0.0
+
+
+def test_gpon_empty_gauge_emits_no_metric_for_it(check, poll):
+    pm = check._parse_gpon(pm_section(_pm(P1, onts="", congestion="3")))
+    metrics = _metrics(poll(T0 + 150, "lt:1/1/1/01", pm, None))
+    assert "oposs_isam_NumActiveOnts" not in metrics
+    assert metrics["oposs_isam_RxDBACongestionTime"] == 3.0
 
 
 def test_gpon_discovery_from_either_section(check):
