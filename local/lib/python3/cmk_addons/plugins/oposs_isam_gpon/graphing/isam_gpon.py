@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (C) 2025 OETIKER+PARTNER AG - License: GNU General Public License v3
 
 """
@@ -7,6 +6,7 @@ Defines metrics, graphs, and perfometers for SFP optics and traffic stats.
 """
 
 from cmk.graphing.v1 import Title
+from cmk.graphing.v1.graphs import Graph
 from cmk.graphing.v1.metrics import (
     Color,
     DecimalNotation,
@@ -14,7 +14,6 @@ from cmk.graphing.v1.metrics import (
     Metric,
     Unit,
 )
-from cmk.graphing.v1.graphs import Graph
 
 # Units
 unit_amperes = Unit(DecimalNotation("A"))
