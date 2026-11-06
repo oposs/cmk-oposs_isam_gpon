@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (C) 2025 OETIKER+PARTNER AG - License: GNU General Public License v3
 
 """
@@ -17,14 +16,17 @@ from cmk.agent_based.v2 import (
     OIDBytes,
     OIDEnd,
     Result,
+    Service,
     SNMPSection,
     SNMPTree,
-    Service,
     State,
     contains,
     get_value_store,
 )
 
+# Create release PR writes the released version here (version_files in
+# .github/repo-infra.json)
+__version__ = "0.5.1"
 
 # GPON line rates per ITU-T G.984 (bits per second).
 # OLT Tx = downstream toward ONTs, OLT Rx = upstream from ONTs.
@@ -168,15 +170,15 @@ def _id2card(idx):
 def _id2gpon(idx):
     """Map enterprise GPON OID end (cardId.port) to interface path."""
     card_id, port = idx.split(".")
-    return _id2card(card_id) + "/" + PORT_TABLE_NT.get(port, "%02d" % int(port))
+    return _id2card(card_id) + "/" + PORT_TABLE_NT.get(port, f"{int(port):02d}")
 
 
 def _id2name(idx):
     """Decode bit-packed interface index to path. Returns key only for PON type."""
     idx = int(idx)
     itype = (idx & ((1 << 25) - 1)) >> 21
-    slot = "%d" % (((idx & ((1 << 30) - 1)) >> 25) - 1)
-    pon = "%02d" % (((idx & ((1 << 21) - 1)) >> 16) + 1)
+    slot = f"{((idx & ((1 << 30) - 1)) >> 25) - 1:d}"
+    pon = f"{((idx & ((1 << 21) - 1)) >> 16) + 1:02d}"
     if itype == 0b1101:  # PON
         return "lt:1/1/" + slot + "/" + pon
     return None
@@ -216,9 +218,7 @@ def _check_linecard(item, section) -> CheckResult:
         return
     dic = section[item]
     avail = dic["availability"]
-    if avail == "1":  # Available
-        state = State.OK
-    elif avail == "5":  # Not Installed
+    if avail in ("1", "5"):  # Available, Not Installed
         state = State.OK
     elif avail == "3":  # Failed
         state = State.CRIT
@@ -226,7 +226,7 @@ def _check_linecard(item, section) -> CheckResult:
         state = State.WARN
     yield Result(
         state=state,
-        summary="%s (%s) Status: %s" % (
+        summary="{} ({}) Status: {}".format(
             dic["actualtype"], dic["serial"], AVAILABILITY.get(avail, avail)),
     )
 
@@ -285,8 +285,8 @@ def _parse_bitmap_block(result, rows, fields, conv_type):
                 else:
                     del dic[field]
         elif conv_type == "float":
-            for field in dic:
-                dic[field] = float(dic[field])
+            for field, val in dic.items():
+                dic[field] = float(val)
         result.setdefault(key, {}).update(dic)
 
 
@@ -462,7 +462,7 @@ def _check_gpon(item, section_oposs_isam_gpon,
             state = State.CRIT
         yield Result(
             state=state,
-            summary="%s \u2013 OperStatus: %s, AdminStatus: %s" % (
+            summary="{} \u2013 OperStatus: {}, AdminStatus: {}".format(
                 dic.get("description", ""),
                 OPER_STATUS.get(oper, oper),
                 ADMIN_STATUS.get(admin, admin),
@@ -518,7 +518,7 @@ def _check_gpon(item, section_oposs_isam_gpon,
     # Plain gauges from the same SNMP block.
     for metric_key in ["NumActiveOnts", "RxDBACongestionTime"]:
         if metric_key in dic:
-            yield Metric("oposs_isam_%s" % metric_key, dic[metric_key])
+            yield Metric(f"oposs_isam_{metric_key}", dic[metric_key])
 
 
 # Fast section: the PM counters only. Left uncached so it is fetched on every

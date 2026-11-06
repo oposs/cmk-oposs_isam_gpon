@@ -8,7 +8,8 @@ Migrated from oegig-plugins to Checkmk 2.3.x v2 API.
 - `local/lib/python3/cmk_addons/plugins/oposs_isam_gpon/agent_based/oposs_isam_gpon.py` -- SNMP sections + check plugins (Linecard + GPON)
 - `local/lib/python3/cmk_addons/plugins/oposs_isam_gpon/graphing/isam_gpon.py` -- metric, graph definitions
 - `.mkp-builder.ini` -- MKP packaging config
-- `.github/workflows/release.yml` -- automated release workflow
+- `.github/workflows/` -- repo-infra callers: `ci.yml` (ruff, pytest, MKP build), `changelog.yml`, `release-pr.yml`, `release-build.yml`, `release-publish.yml`
+- `tests/` -- pytest against the real Checkmk 2.3.0 API (`tests/conftest.py` fetches it into `.cmk-api/`)
 
 ## Architecture
 

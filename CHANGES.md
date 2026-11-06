@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### New
+- The package carries the release version in its check plugin (`__version__`).
 
 ### Changed
 - Licence is GNU General Public License **v3**, not v2. `SLOT_TABLE` and
