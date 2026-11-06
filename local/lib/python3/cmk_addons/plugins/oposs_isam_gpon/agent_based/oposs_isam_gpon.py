@@ -489,7 +489,8 @@ def _check_gpon(item, section_oposs_isam_gpon,
         ("oposs_isam_temperature", "temperature"),
     ]:
         val = dic.get(key, "")
-        if val and val[0:1].isdigit():
+        # Rx power in dBm and a sub-zero temperature are negative.
+        if val and val.lstrip("-")[0:1].isdigit():
             try:
                 yield Metric(name, float(val.split(" ")[0]))
             except (ValueError, IndexError):

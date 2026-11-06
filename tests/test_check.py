@@ -341,7 +341,6 @@ def test_gpon_garbage_optics_are_skipped(check, poll):
     assert _metrics(poll(T0 + 150, "lt:1/1/1/01", None, info)) == {}
 
 
-@pytest.mark.xfail(strict=True, reason="BUG: negative optics readings (Rx power in dBm, sub-zero temperature) are dropped")
 def test_gpon_negative_optics_are_recorded(check, poll):
     info = check._parse_gpon_info([
         [_optics("4355.1", rx="-18.40 dBm", temperature="-5.0 degrees Celsius")],
