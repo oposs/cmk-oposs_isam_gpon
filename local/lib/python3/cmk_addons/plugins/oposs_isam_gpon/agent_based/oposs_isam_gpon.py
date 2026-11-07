@@ -26,7 +26,7 @@ from cmk.agent_based.v2 import (
 
 # Create release PR writes the released version here (version_files in
 # .github/repo-infra.json)
-__version__ = "0.5.1"
+__version__ = "0.6.0"
 
 # GPON line rates per ITU-T G.984 (bits per second).
 # OLT Tx = downstream toward ONTs, OLT Rx = upstream from ONTs.
